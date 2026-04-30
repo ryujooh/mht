@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>블랙앤화이트 습관 트래커</title>
+    <!-- 가늘고 모던한 폰트 (Pretendard Light) -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+        :root {
+            --black: #111;
+            --white: #fff;
+            --gray-light: #f5f5f5;
+            --gray-dark: #666;
+            --line-solid: 1px solid #ddd;
+            --line-dot: 1px dotted #aaa;
+        }
+        
+        body { 
+            font-family: 'Pretendard', sans-serif; font-weight: 300; 
+            background-color: var(--white); color: var(--black);
+            margin: 0; padding: 0; letter-spacing: 0.5px;
+        }
+        
+        .container { max-width: 900px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; border-left: var(--line-solid); border-right: var(--line-solid); }
+
+        /* [상단 고정 영역] */
+        .header-fixed {
+            position: sticky; top: 0; background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px); z-index: 100; padding: 40px;
+            border-bottom: var(--line-solid);
+        }
+        .title-area { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; }
+        h1 { margin: 0; font-size: 1.2rem; font-weight: 400; letter-spacing: 3px; text-transform: uppercase; }
+        .period-display { font-size: 0.85rem; color: var(--gray-dark); }
+        .status-msg { font-size: 0.65rem; color: var(--gray-dark); margin-bottom: 10px; height: 12px; }
+
+        .progress-bar-wrap { width: 100%; height: 1px; background: #eee; margin-bottom: 15px; }
+        .progress-bar-fill { height: 100%; background: var(--black); width: 0%; transition: width 0.5s ease; }
+        .progress-text { font-size: 0.75rem; text-align: right; }
+
+        .habit-display-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+        .habit-display-item { font-size: 0.75rem; border: var(--line-dot); padding: 5px 12px; border-radius: 20px; }
+
+        /* [중간 달력/메모 영역] */
+        .content-area { padding: 40px; flex: 1; background: var(--gray-light); }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+        
+        .day-card { background: var(--white); padding: 25px; border: var(--line-dot); transition: border 0.3s; }
+        .day-card.today { border: 1px solid var(--black); box-shadow: 4px 4px 0px rgba(0,0,0,0.05); }
+        
+        .day-card-header { display: flex; justify-content: space-between; margin-bottom: 20px; padding-bottom: 10px; border-bottom: var(--line-solid); }
+        .day-number { font-size: 0.7rem; color: var(--gray-dark); }
+        .today .day-number { color: var(--black); font-weight: 500; }
+        .day-date { font-size: 0.85rem; font-weight: 400; }
+
+        .check-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+        .check-item { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 30px; }
+        .check-item span { font-size: 0.65rem; color: var(--gray-dark); }
+        input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; accent-color: var(--black); margin: 0; }
+
+        textarea.memo-box { 
+            width: 100%; height: 60px; padding: 10px; font-family: inherit; font-size: 0.75rem; font-weight: 300;
+            border: var(--line-dot); background: transparent; resize: none; box-sizing: border-box; outline: none; transition: border 0.2s;
+        }
+        textarea.memo-box:focus { border: 1px solid var(--black); }
+
+        /* [하단 설정 영역] */
+        .settings-area { padding: 50px 40px; border-top: var(--line-solid); background: var(--white); }
+        .section-title { font-size: 0.85rem; font-weight: 400; letter-spacing: 2px; margin-bottom: 30px; text-align: center; }
+        
+        .date-settings { display: flex; justify-content: center; gap: 20px; margin-bottom: 40px; flex-wrap: wrap; }
+        .date-input-box { font-size: 0.75rem; display: flex; flex-direction: column; gap: 8px; }
+        input[type="date"] { font-family: inherit; font-size: 0.8rem; padding: 5px; border: none; border-bottom: var(--line-solid); outline: none; }
+        
+        .habit-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .habit-input-wrapper { display: flex; align-items: center; border-bottom: var(--line-dot); padding-bottom: 5px; }
+        .habit-num { font-size: 0.7rem; color: var(--gray-dark); width: 25px; }
+        .habit-text-input { flex: 1; border: none; outline: none; font-family: inherit; font-size: 0.8rem; font-weight: 300; background: transparent; }
+
+        .btn-group { display: flex; justify-content: center; gap: 15px; margin-top: 30px; }
+        button { background: transparent; border: 1px solid var(--black); padding: 10px 30px; font-family: inherit; font-size: 0.75rem; font-weight: 300; letter-spacing: 1px; cursor: pointer; transition: all 0.3s; }
+        button:hover { background: var(--black); color: var(--white); }
+        .btn-sync { border-color: var(--gray-dark); color: var(--gray-dark); }
+
+        @media (max-width: 600px) {
+            .header-fixed { padding: 20px; }
+            .content-area, .settings-area { padding: 20px; }
+            .title-area { flex-direction: column; align-items: flex-start; gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- [상단 고정 영역] -->
+    <div class="header-fixed">
+        <div class="status-msg" id="sync-msg">새로운 시작을 응원합니다.</div>
+        <div class="title-area">
+            <h1>HABIT TRACKER</h1>
+            <div class="period-display" id="display-period">0000. 00. 00 — 0000. 00. 00</div>
+        </div>
+        
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="pb-fill"></div></div>
+        <div class="progress-text" id="pb-text">0%</div>
+
+        <div class="habit-display-list" id="display-habits">
+            <!-- 확정된 습관이 표시됩니다 -->
+        </div>
+    </div>
+
+    <!-- [중간 달력/메모 영역] -->
+    <div class="content-area">
+        <div class="grid-container" id="card-grid"></div>
+    </div>
+
+    <!-- [하단 설정 영역] -->
+    <div class="settings-area">
+        <div class="section-title">TRACKER SETTINGS</div>
+        
+        <div class="date-settings">
+            <div class="date-input-box">
+                <label>START DATE</label>
+                <input type="date" id="input-start-date">
+            </div>
+            <div class="date-input-box">
+                <label>END DATE</label>
+                <input type="date" id="input-end-date">
+            </div>
+        </div>
+        
+        <div class="habit-inputs" id="input-habits-container">
+            <!-- 습관 입력칸 10개 -->
+        </div>
+
+        <div class="btn-group">
+            <button onclick="saveSettings()">설정 적용하기</button>
+            <button class="btn-sync" onclick="forceSync()">데이터 불러오기</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // 🚨 여기에 1단계에서 복사한 웹 앱 URL을 넣으세요!
+    // ==========================================
+    const GAS_URL = "여기에_복사한_웹앱_URL을_붙여넣으세요"; 
+    
+    // --- 기본 데이터 불러오기 ---
+    const todayStr = new Date().toISOString().split('T')[0];
+    let startD = localStorage.getItem('trk_start') || todayStr;
+    
+    // 100일 후를 기본 종료일로 설정
+    let d = new Date(startD); d.setDate(d.getDate() + 99);
+    let defaultEndD = d.toISOString().split('T')[0];
+    let endD = localStorage.getItem('trk_end') || defaultEndD;
+
+    let habits = JSON.parse(localStorage.getItem('trk_habits')) || Array(10).fill("");
+    let logs = JSON.parse(localStorage.getItem('trk_logs')) || {};
+
+    let syncTimer;
+
+    // --- 화면 그리기 ---
+    function init() {
+        // 상단 기간 텍스트
+        document.getElementById('display-period').innerText = `${startD.replace(/-/g, '. ')} — ${endD.replace(/-/g, '. ')}`;
+        
+        // 하단 인풋 초기화
+        document.getElementById('input-start-date').value = startD;
+        document.getElementById('input-end-date').value = endD;
+
+        const displayBox = document.getElementById('display-habits');
+        const inputBox = document.getElementById('input-habits-container');
+        displayBox.innerHTML = '';
+        inputBox.innerHTML = '';
+
+        let validHabitCount = 0;
+
+        for (let i = 0; i < 10; i++) {
+            // 하단 입력칸 10개 생성
+            inputBox.innerHTML += `
+                <div class="habit-input-wrapper">
+                    <span class="habit-num">${(i+1).toString().padStart(2,'0')}</span>
+                    <input type="text" id="habit-input-${i}" class="habit-text-input" value="${habits[i]}" placeholder="습관 내용을 입력하세요">
+                </div>
+            `;
+            // 상단에는 입력된 것만 표시
+            if (habits[i].trim() !== "") {
+                displayBox.innerHTML += `<div class="habit-display-item">${(i+1).toString().padStart(2,'0')}. ${habits[i]}</div>`;
+                validHabitCount++;
+            }
+        }
+
+        // --- 카드 달력 만들기 ---
+        const grid = document.getElementById('card-grid');
+        grid.innerHTML = '';
+        
+        let startObj = new Date(startD); startObj.setHours(0,0,0,0);
+        let endObj = new Date(endD); endObj.setHours(0,0,0,0);
+        let totalDays = Math.round((endObj - startObj) / (1000 * 60 * 60 * 24)) + 1;
+        
+        let todayObj = new Date(); todayObj.setHours(0,0,0,0);
+        let todayDiff = Math.floor((todayObj - startObj) / (1000 * 60 * 60 * 24));
+
+        for (let i = 0; i < totalDays; i++) {
+            let curD = new Date(startObj);
+            curD.setDate(startObj.getDate() + i);
+            let dayKey = `d_${i}`;
+            let isToday = (i === todayDiff);
+
+            let card = document.createElement('div');
+            card.className = isToday ? 'day-card today' : 'day-card';
+            
+            // 등록된 습관 개수만큼만 체크박스 생성
+            let checks = '';
+            for (let h = 0; h < 10; h++) {
+                if(habits[h].trim() !== "") {
+                    let checked = (logs[dayKey] && logs[dayKey][`h${h}`]) ? 'checked' : '';
+                    checks += `<div class="check-item"><span>${h+1}</span><input type="checkbox" data-day="${dayKey}" data-h="h${h}" ${checked} onchange="logCheck(this)"></div>`;
+                }
+            }
+
+            let memoText = (logs[dayKey] && logs[dayKey].memo) ? logs[dayKey].memo : '';
+
+            card.innerHTML = `
+                <div class="day-card-header">
+                    <span class="day-number">${isToday ? 'TODAY' : 'DAY ' + (i+1).toString().padStart(3,'0')}</span>
+                    <span class="day-date">${(curD.getMonth()+1)}/${curD.getDate()}</span>
+                </div>
+                <div class="check-grid">${checks}</div>
+                <textarea class="memo-box" placeholder="오늘의 기록..." oninput="logMemo('${dayKey}', this)">${memoText}</textarea>
+            `;
+            grid.appendChild(card);
+        }
+        updateProgress(totalDays, validHabitCount);
+    }
+
+    // --- 데이터 저장 & 구글 연동 함수 ---
+    function msg(text) { document.getElementById('sync-msg').innerText = text; }
+
+    async function sendToGoogle() {
+        if (!GAS_URL || GAS_URL.includes("여기에")) return;
+        msg("구글 시트에 자동 저장 중...");
+        let payload = {
+            trk_start: localStorage.getItem('trk_start'),
+            trk_end: localStorage.getItem('trk_end'),
+            trk_habits: JSON.parse(localStorage.getItem('trk_habits')),
+            trk_logs: JSON.parse(localStorage.getItem('trk_logs'))
+        };
+        try {
+            await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+            msg("모든 기록이 안전하게 저장되었습니다.");
+        } catch(e) { msg("인터넷 연결이 불안정합니다."); }
+    }
+
+    function logCheck(el) {
+        let d = el.dataset.day, h = el.dataset.h;
+        if(!logs[d]) logs[d] = {};
+        logs[d][h] = el.checked;
+        localStorage.setItem('trk_logs', JSON.stringify(logs));
+        init(); // 진행률 업데이트 위해 재렌더링
+        sendToGoogle();
+    }
+
+    function logMemo(d, el) {
+        if(!logs[d]) logs[d] = {};
+        logs[d].memo = el.value;
+        localStorage.setItem('trk_logs', JSON.stringify(logs));
+        clearTimeout(syncTimer);
+        msg("입력 중...");
+        syncTimer = setTimeout(sendToGoogle, 1000);
+    }
+
+    function saveSettings() {
+        localStorage.setItem('trk_start', document.getElementById('input-start-date').value);
+        localStorage.setItem('trk_end', document.getElementById('input-end-date').value);
+        
+        let newHabits = [];
+        for(let i=0; i<10; i++) newHabits.push(document.getElementById(`habit-input-${i}`).value);
+        localStorage.setItem('trk_habits', JSON.stringify(newHabits));
+        
+        sendToGoogle().then(() => location.reload());
+    }
+
+    async function forceSync() {
+        if(!confirm("구글 시트의 데이터로 덮어씁니다. 진행할까요?")) return;
+        msg("구글 시트에서 불러오는 중...");
+        try {
+            let res = await fetch(GAS_URL);
+            let data = await res.json();
+            if(data.trk_start) localStorage.setItem('trk_start', data.trk_start);
+            if(data.trk_end) localStorage.setItem('trk_end', data.trk_end);
+            if(data.trk_habits) localStorage.setItem('trk_habits', JSON.stringify(data.trk_habits));
+            if(data.trk_logs) localStorage.setItem('trk_logs', JSON.stringify(data.trk_logs));
+            location.reload();
+        } catch(e) { alert("데이터를 불러오지 못했습니다."); msg(""); }
+    }
+
+    function updateProgress(days, count) {
+        if(count === 0) return;
+        const checks = document.querySelectorAll('input[type="checkbox"]');
+        const checked = Array.from(checks).filter(c => c.checked).length;
+        const percent = ((checked / (days * count)) * 100).toFixed(1);
+        document.getElementById('pb-fill').style.width = percent + '%';
+        document.getElementById('pb-text').innerText = percent + '%';
+    }
+
+    window.onload = () => {
+        init();
+        let target = document.querySelector('.today');
+        if(target) window.scrollTo({top: target.offsetTop - 150, behavior: 'smooth'});
+    };
+</script>
+</body>
+</html>
